@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/sh -e
 
 #Setting up amavisd-new to run in a chroot jail
 #==============================================
@@ -39,21 +39,26 @@ cd /var/amavis
 
 
 # make directory structure within the current directory (/var/amavis)
-mkdir -p etc dev var/run var/virusmails
-mkdir -p usr/bin usr/lib usr/libexec usr/share usr/share/zoneinfo
-mkdir -p usr/share/misc usr/share/spamassassin etc/mail/spamassassin
-mkdir -p usr/local/lib/perl5/site_perl
+
+FILES="etc dev var/run var/virusmails \
+  usr/bin usr/lib usr/libexec usr/share usr/share/zoneinfo \
+  usr/share/misc usr/share/spamassassin etc/mail/spamassassin \
+  usr/local/lib/perl5/site_perl \
+  var/virusmails/spam var/virusmails/virus var/virusmails/banned var/virusmails/badh var/virusmails/archive \
+  home var/db/amavis scratch/tmp-am scratch/tmp-sys"
+for file in $FILES; do
+  [ -d $file ] || mkdir -p $file
+done
 
 # optional, depending on template in $*_quarantine_method :
-mkdir var/virusmails/spam var/virusmails/virus var/virusmails/banned var/virusmails/badh var/virusmails/archive
 chown amavis:amavis var/virusmails/spam var/virusmails/virus var/virusmails/banned var/virusmails/badh var/virusmails/archive
 
 # make devices - adjust MAJOR/MINOR as appropriate ( see ls -l /dev/* )
 #mknod dev/null    c  2 2   # FreeBSD
-mknod dev/null    c  1 3   # Linux?
+rm -f dev/null; mknod dev/null    c  1 3   # Linux?
 
-mknod dev/random  c  1 8   # Linux?
-mknod dev/urandom c  1 9   # Linux?
+rm -f dev/random; mknod dev/random  c  1 8   # Linux?
+rm -f dev/urandom; mknod dev/urandom c  1 9   # Linux?
 #mknod dev/urandom c 45 2   # OpenBSD ?
 #mknod dev/random  c  2 3   # FreeBSD ?
 #mknod dev/random  c  244 0 # FreeBSD5.4
@@ -72,7 +77,7 @@ mknod dev/urandom c  1 9   # Linux?
 # make a symbolic link so that chrooted processes can refer to the
 # home directory as /var/amavis (same as not-chrooted), and need not have
 # to handle it differently (i.e. referring to it as  / )
-ln -s .. var/amavis
+rm -rf var/amavis; ln -s .. var/amavis
 # actually, the following is more general:  d=`pwd`; ln -s / $d$d
 
 
@@ -120,8 +125,8 @@ done
 # copy shared libraries to /var/amavis/lib
 #   (check:  ldd /var/amavis/usr/bin/*  to see which ones are needed)
 
-ln -s usr/lib .
-ln -s usr/libexec .
+rm -rf lib; ln -s usr/lib .
+rm -rf libexec; ln -s usr/libexec .
 
 ##FreeBSD:
 #for j in \
@@ -151,7 +156,7 @@ if [ -n "$LIBLIST" ]; then
 fi
 
 # UTF8 data files needed by Perl Unicode support:
-cp -pR /usr/share/perl5/core_perl/unicore/ usr/local/lib/perl5/site_perl/
+rm -rf usr/local/lib/perl5/site_perl/*; cp -pR /usr/share/perl5/core_perl/unicore/ usr/local/lib/perl5/site_perl/
 #
 # on OpenBSD 3.8 that would be something like:
 #   cp -pR /usr/libdata/perl5/unicore/ usr/libdata/perl5/
@@ -161,7 +166,7 @@ cp -pR /usr/share/perl5/core_perl/unicore/ usr/local/lib/perl5/site_perl/
 
 #cp -p  /etc/mail/spamassassin/{*.pre,*.cf} etc/mail/spamassassin/
 #cp -pR /usr/local/share/spamassassin usr/share/  # FreeBSD
-cp -pR /usr/share/spamassassin       usr/share/  # Linux
+rm -rf usr/share/spamassassin; cp -pR /usr/share/spamassassin usr/share/  # Linux
 
 # Razor2 (if called from SpamAssassin):
 #echo 'debuglevel = 0' >>/etc/razor-agent.conf
@@ -171,7 +176,7 @@ cp -pR /usr/share/spamassassin       usr/share/  # Linux
 # magic files in different locations. Use the most recent version of file(1)
 # and check its documentation. Some usual locations are:
 #cp -p /usr/local/share/file/*  usr/local/share/file/
-cp -p /usr/share/misc/magic*   usr/share/misc/
+rm -f usr/share/misc/magic*; cp -p /usr/share/misc/magic* usr/share/misc/
 #cp -p /usr/share/magic         usr/share/
 
 # needed by AV scanners (ClamAV)
@@ -189,7 +194,6 @@ cp -p /usr/share/misc/magic*   usr/share/misc/
 #mkdir -p usr/local/sav
 #cp -pR /usr/local/sav usr/local/
 
-mkdir -p home var/db/amavis scratch/tmp-am scratch/tmp-sys
 # Subdirectory 'scratch' may reside on a volatile file system (tmpfs)
 
 # set protection and ownership
@@ -199,10 +203,10 @@ chown -R amavis:amavis home scratch/tmp-am var/db/amavis var/virusmails
 #chown -R clamav:clamav var/db/clamav
 chmod 751 . scratch var
 chmod 1777 scratch/tmp-sys
-ln -s ../scratch/tmp-sys var/tmp
-ln -s scratch/tmp-sys tmp
-ln -s scratch/tmp-am  tmp-am
-ln -s var/db/amavis db   # for compatibility with traditional location
+rm -rf var/tmp; ln -s ../scratch/tmp-sys var/tmp
+rm -rf tmp; ln -s scratch/tmp-sys tmp
+rm -rf tmp-am; ln -s scratch/tmp-am  tmp-am
+rm -rf db; ln -s var/db/amavis db   # for compatibility with traditional location
 chmod 666 dev/null
 chmod 644 dev/*random
 
@@ -261,8 +265,8 @@ perl -Te 'use POSIX; $ENV{PATH}="/usr/bin";
 #in file amavisd:
 #
 #    fetch_modules('REQUIRED BASIC MODULES', qw(
-#	Exporter POSIX Fcntl Socket Errno Time::HiRes
-#	IO::File IO::Socket IO::Wrap IO::Stringy
+#       Exporter POSIX Fcntl Socket Errno Time::HiRes
+#       IO::File IO::Socket IO::Wrap IO::Stringy
 #    ...
 #
 #With earlier version of Perl you might need to add autoloaded modules
