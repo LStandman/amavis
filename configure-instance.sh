@@ -100,8 +100,9 @@ for file in $FILES; do
 done
 
 # copy needed /etc files to /var/amavis/etc
-FILES="etc/protocols etc/services etc/netconfig etc/hosts \
-  etc/resolv.conf etc/localtime \
+# hosts and resolv.conf must be copied at boot time
+FILES="etc/protocols etc/services etc/netconfig \
+  etc/localtime \
   etc/nsswitch.conf etc/svc.conf etc/host.conf"
 for file in $FILES; do
   [ -d ${file%/*} ] || mkdir -p ${file%/*}
