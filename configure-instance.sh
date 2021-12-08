@@ -53,26 +53,7 @@ done
 # optional, depending on template in $*_quarantine_method :
 chown amavis:amavis var/virusmails/spam var/virusmails/virus var/virusmails/banned var/virusmails/badh var/virusmails/archive
 
-# make devices - adjust MAJOR/MINOR as appropriate ( see ls -l /dev/* )
-#mknod dev/null    c  2 2   # FreeBSD
-rm -f dev/null; mknod dev/null    c  1 3   # Linux?
-
-rm -f dev/random; mknod dev/random  c  1 8   # Linux?
-rm -f dev/urandom; mknod dev/urandom c  1 9   # Linux?
-#mknod dev/urandom c 45 2   # OpenBSD ?
-#mknod dev/random  c  2 3   # FreeBSD ?
-#mknod dev/random  c  244 0 # FreeBSD5.4
-#ln -s dev/random dev/urandom  # FreeBSD
-
-# some external programs may need these:
-#mknod dev/zero    c 2 12   # FreeBSD,  OpenBSD
-#mknod dev/stdin   c 22 0   # FreeBSD?, OpenBSD
-#mknod dev/stdout  c 22 1   # FreeBSD?, OpenBSD
-#mknod dev/stderr  c 22 2   # FreeBSD?, OpenBSD
-
-# NOTE: the file system where dev/null and other device files will reside
-#       must NOT be mounted with "nodev" option (/etc/fstab) !
-
+# devices management is delegated to host
 
 # make a symbolic link so that chrooted processes can refer to the
 # home directory as /var/amavis (same as not-chrooted), and need not have
@@ -92,7 +73,7 @@ FILES="usr/bin/file usr/bin/ar bin/pax usr/bin/gzip usr/bin/bzip2 \
   usr/local/bin/clamscan usr/local/bin/sweep usr/local/sbin/sophie \
   usr/local/bin/dccproc usr/local/bin/pyzor \
   usr/bin/altermime usr/bin/lz4c \
-  usr/bin/7z usr/lib/p7zip/7z usr/bin/7za usr/lib/p7zip/7za bin/sh "
+  usr/bin/7z usr/lib/p7zip/7z usr/bin/7za usr/lib/p7zip/7za"
 for file in $FILES; do
   [ -d ${file%/*} ] || mkdir -p ${file%/*}
   if [ -f /${file} ]; then rm -f ${file} && cp /${file} ${file}; fi
@@ -208,8 +189,6 @@ rm -rf var/tmp; ln -s ../scratch/tmp-sys var/tmp
 rm -rf tmp; ln -s scratch/tmp-sys tmp
 rm -rf tmp-am; ln -s scratch/tmp-am  tmp-am
 rm -rf db; ln -s var/db/amavis db   # for compatibility with traditional location
-chmod 666 dev/null
-chmod 644 dev/*random
 
 # /etc/passwd: set home directory of user amavis to /var/amavis/home !!!
 
@@ -232,7 +211,6 @@ perl -Te 'use POSIX; $ENV{PATH}="/usr/bin";
          $uid=getpwnam("amavis")   or die "E1:$!";
          chroot "/var/amavis"     or die "E2:$!"; chdir "/";
          POSIX::setuid($uid)      or die "E3:$!";
-         open(STDIN,"</dev/null") or die "E4:$!";
          exec qw(file /etc/amavisd.conf) or die "E5:$!"' 1> /dev/null; exit $?
 # or...
 #    ... exec qw(file /usr/bin/gzip)   or die "E5:$!"'; echo $?
