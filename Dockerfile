@@ -16,5 +16,6 @@ EXPOSE 50024
 
 # hosts and resolv.conf must be read at boot
 CMD ["sh", "-c", \
-  "cp /etc/hosts /etc/resolv.conf /var/amavis/etc/ \
+  "rm -rf /var/amavis/home/*; 
+  ; cp /etc/hosts /etc/resolv.conf /var/amavis/etc/ \ 
   && /usr/sbin/amavisd -c /etc/amavisd.conf foreground"]
